@@ -1,3 +1,7 @@
+/*Entry point for the Facebook client. Sends in the nubmer of users and request numbers. 
+Calls the client service to create a user.
+*/
+
 package facebookClient
 
 import common.Constants
@@ -11,8 +15,7 @@ object Client {
 
   def main(args : Array[String]) {
         
-        val numberOfUsers : Int = args(0).toInt   //change it to system paramters
-       // val requestPerSecond : Int = 1000
+        val numberOfUsers : Int = args(0).toInt   
         //parameters to control scaling factors
         val getRequestRate : Int = 100;
         val postRequestRate : Int = 10;
