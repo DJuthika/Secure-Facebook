@@ -1,3 +1,11 @@
+/*
+Defines functionality of a facebook user.
+Four main functions:
+   1.Register a user
+   2.Authenticate a user to the server using the user's public key.
+   3.Send requests to the server.
+*/
+
 package facebookClient.clientService
 
 import util.RSA
@@ -120,12 +128,12 @@ class FacebookUsers(numOfUsers : Int,RequestRate : Int,publicKeyHashMap : collec
   
   
   def sendRandomReuqest() = {
+     //There can be 6 request so generate a random request to send to a server.
       var act = generateRandomValue(6);
       var senderId = userName;
       var receiverId = generateRandomUserName();
       var message = generateRandomMessage();
       var profileField = generateFieldValue();
-   //   println("sending  request")
       act match {
         case 0 => updateProfile(senderId,profileField,message);
         case 1 => postToWall(senderId,receiverId,message);
@@ -138,6 +146,7 @@ class FacebookUsers(numOfUsers : Int,RequestRate : Int,publicKeyHashMap : collec
   }
   
   def distributeLoadAndSend = {
+     //Post only at a given interval.
     val postRequestInterval = (RequestRate / 100000).milli
   //   println(postRequestInterval)
     system.scheduler.schedule(0 milli, 100.milli, self.actorRef, SendRequestToServer)
@@ -177,20 +186,17 @@ class FacebookUsers(numOfUsers : Int,RequestRate : Int,publicKeyHashMap : collec
      for {
        response <- (IO(Http) ? HttpRequest(GET, Uri("http://127.0.0.1:8080/getServerPublicKey"))).mapTo[HttpResponse]
     }  yield {
-     // println("GOT RESPONSE : " + response.entity.data.asString)
           var  serverPublicKeyString : String = response.entity.data.asString
-       //   println("Decoding the String to Publickey")
-        // serverPublicKey = RSA.decodePublicKey(serverPublicKeyString).asInstanceOf[PublicKey]
           serverPublicKey = RSA.myDecoder(serverPublicKeyString)
-        //    println("ServerKey: " + serverPublicKey)
-    //  startSendingRequessts
     }    
   }
   
     def updateProfile(userId: String, profileField : String, profileValue:  String) = {
     
-      var aesKeyString : String = Base64.encodeBase64String(aesKey.getEncoded)
+   //Encrypt the profileField and Value to maintain security in the system.
+   var aesKeyString : String = Base64.encodeBase64String(aesKey.getEncoded)
     
+    //generate keys using RSA function.
     var RSAencryptedProfileField = RSA.encryptB64(publicKeyHashMap(userId), profileField.getBytes)
     var RSAencryptedProfileValue = RSA.encryptB64(publicKeyHashMap(userId), profileValue.getBytes)
     
@@ -198,14 +204,14 @@ class FacebookUsers(numOfUsers : Int,RequestRate : Int,publicKeyHashMap : collec
     var AESencryptedRSAedProfileField  = AES.encrypt(aesKeyString, "iv34567891234678", RSAencryptedProfileField)
     var AESencryptedRSAedProfileValue = AES.encrypt(aesKeyString, "iv34567891234678", RSAencryptedProfileValue)
     
-     //Encrypt AES key with RSA public Key for Server.
+    //Encrypt AES key with RSA public Key for Server.
     var EncrpytAESkeywithRSAKey = RSA.encrypt(serverPublicKey, aesKey.getEncoded)
     
     //encode the encrypted key as base64 to send it over network.
     var b64_Encoder = new BASE64Encoder()
     var data =   b64_Encoder.encode(EncrpytAESkeywithRSAKey)
 
-     var json_string = """{"userId" : " """  + userId + """ " , "profileField" : " """ + AESencryptedRSAedProfileField + """ " , "profileValue" : " """ + AESencryptedRSAedProfileValue + """", "EncryptedKey" : " """ + data + """ " } """;
+    var json_string = """{"userId" : " """  + userId + """ " , "profileField" : " """ + AESencryptedRSAedProfileField + """ " , "profileValue" : " """ + AESencryptedRSAedProfileValue + """", "EncryptedKey" : " """ + data + """ " } """;
        var formData = HttpEntity(ContentType(spray.http.MediaTypes.`text/plain`), json_string); 
     for {
        response <- (IO(Http) ? HttpRequest(POST, Uri("http://127.0.0.1:8080/updateProfile"), entity=formData)).mapTo[HttpResponse]  
