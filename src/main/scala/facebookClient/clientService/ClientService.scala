@@ -1,3 +1,7 @@
+/*
+Class to create a facebook user depending on the number of users provided by Client.scala.
+Facebookusers are created in FacebookUsers.scala.
+*/
 package facebookClient.clientService
 
 import akka.actor.Actor
@@ -26,17 +30,7 @@ class ClientService(numOfUsers : Int,getRequestRate : Int,postRequestRate : Int,
   implicit val timeout: Timeout = Timeout(15.seconds)
   var publicKeyHashMap : collection.concurrent.Map[String,PublicKey] = new ConcurrentHashMap().asScala
   import system.dispatcher
-  
-//  def startSendingRequests = {
-//    for {
-//     response <- (IO(Http) ? HttpRequest(GET, Uri("http://127.0.0.1:8080/working"))).mapTo[HttpResponse]
-//    }  yield {
-//      if(count % 100 == 0){
-//        println(count)}    
-//        count = count + 1;   
-//    }  
-//  }
-  
+
   def scheduleRequest = {
     for ( i <- 0 to numOfUsers-1){
           var facebookUser = system.actorOf(Props(new FacebookUsers(numOfUsers,postRequestRate,publicKeyHashMap)), name="user" + i)
